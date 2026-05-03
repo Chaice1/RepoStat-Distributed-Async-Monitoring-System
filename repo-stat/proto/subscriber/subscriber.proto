@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package subscriber.v1;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "yadro.com/course/proto/gen/go/subscriber/v1;subscriberv1";
+
+service Subscriber {
+  rpc Ping(PingRequest) returns (PingResponse);
+  rpc GetSubscriptions(google.protobuf.Empty) returns (GetSubscriptionsResponse);
+  rpc DeleteSubscription(DeleteSubscriptionRequest) returns (google.protobuf.Empty);
+  rpc CreateSubscription(CreateSubscriptionRequest) returns (google.protobuf.Empty);
+}
+
+message PingRequest {
+}
+
+message PingResponse {
+  string reply = 1;
+}
+
+
+
+message Subscription{
+  string id = 1;
+  string repo_name = 2;
+  string owner_name = 3;
+  string created_at = 4;
+}
+
+message GetSubscriptionsResponse{
+  repeated Subscription subscriptions = 1;
+}
+
+
+message DeleteSubscriptionRequest{
+  string repo_name =1;
+  string owner_name=2;
+}
+
+message CreateSubscriptionRequest{
+  string repo_name =1;
+  string owner_name=2;
+}
+
+
+
+
+

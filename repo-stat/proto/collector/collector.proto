@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package proto.collector;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "repo-stat/proto/collector;collectorpb";
+
+service Collector{
+  rpc GetInfoRepo(GetInfoRepoRequest) returns (GetInfoRepoResponse);
+  rpc GetInfoRepositories(google.protobuf.Empty) returns (GetInfoRepositoriesResponse);
+}
+
+message GetInfoRepoRequest{
+  string repo = 1;
+  string owner = 2;
+}
+
+message RepoInfo{
+  string fullname = 1;
+  string description = 2;
+  uint64 stargazers = 3;
+  uint64 forks = 4;
+  string createdat = 5;
+}
+
+message GetInfoRepoResponse{
+  RepoInfo repoinfo = 1;
+}
+
+message GetInfoRepositoriesResponse{
+  repeated RepoInfo repositoriesinfo = 1;
+}
