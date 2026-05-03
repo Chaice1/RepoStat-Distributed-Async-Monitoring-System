@@ -1,25 +1,73 @@
-ысоконагруженная система для отслеживания статистики GitHub-репозиториев в реальном времени.
+# RepoStat: Distributed Event-Driven Monitoring System
 
-## 🚀 Архитектура
-Система построена на принципах **Clean Architecture** и **Event-Driven Design**:
-- **API Gateway**: REST-вход, управление подписками и выдача закэшированных данных.
-- **Processor**: "Мозг" системы. Хранит кэш в Postgres, управляет очередью задач в Kafka.
-- **Collector**: Воркер, собирающий данные из GitHub REST API.
-- **Subscriber**: gRPC-сервис управления списком подписок.
+**RepoStat** — это высоконагруженная отказоустойчивая система для мониторинга статистики GitHub-репозиториев. Проект демонстрирует современные подходы к построению распределенных систем, асинхронную обработку данных и принципы Clean Architecture.
 
-## 🛠 Стек технологий
-- **Язык**: Go (Golang)
-- **Очереди**: Apache Kafka
-- **Базы данных**: PostgreSQL (2 независимых инстанса)
-- **Интерфейсы**: gRPC, REST (Gin)
-- **Инструменты**: SQLC, Golang-migrate, Docker Compose, Kafka-UI
+##  Архитектура системы
 
-## 🧩 Ключевые фичи
-- **Idempotent Consumer (Inbox)**: Защита от дублей сообщений в Kafka через таблицу-инбокс по UUID.
-- **Transactional Outbox**: Гарантированная отправка задач в очередь только после успешного коммита в БД.
-- **Background Updates**: Автоматическое обновление данных по всем подпискам каждые 15 секунд через асинхронные задачи.
-- **Parallel Processing**: Многопоточный сбор данных из GitHub (Worker Pool в Collector).
+Система разделена на 4 независимых микросервиса:
 
-## 📦 Запуск
-```bash
-docker-compose up --build
+- **API Gateway**: Входная точка (REST). Управляет подписками и предоставляет кэшированные данные.
+- **Processor**: Оркестратор данных. Реализует логику кэширования в PostgreSQL, управляет транзакционными состояниями и очередями задач.
+- **Collector**: Воркер-собиратель. Взаимодействует с GitHub REST API, обрабатывает задачи из Kafka и публикует результаты.
+- **Subscriber**: Источник правды (Source of Truth) для управления списком пользовательских подписок.
+
+### Data Flow (Поток данных)
+`User` → `Gateway` → `gRPC` → `Subscriber` (Check subs)  
+`Gateway` → `gRPC` → `Processor` (Cache check) → `Kafka (tasks)` → `Collector` → `GitHub API` → `Kafka (results)` → `Processor` (Update DB)
+
+##  Технологический стек
+
+- **Language**: Go 
+- **Message Broker**: Apache Kafka 
+- **Databases**: PostgreSQL 
+- **Transport**: gRPC (Protobuf), REST 
+- **Infrastructure**: Docker, Docker Compose, Golang-migrate
+
+##  Ключевые инженерные фичи
+
+###  Надежность (Exactly-Once Effect)
+- **Transactional Outbox**: Гарантированная отправка задач в Kafka. Сообщение пишется в БД в одной транзакции с бизнес-логикой и доставляется отдельным Relay-воркером.
+- **Transactional Inbox**: Идемпотентная обработка результатов. Каждый ответ из Kafka имеет уникальный UUID, который проверяется через таблицу-инбокс в Postgres перед обновлением кэша.
+
+###  Оптимизация производительности
+- **Cache Stampede Protection**: При первом запросе данных система ставит транзакционный "замок" (`status: FETCHING`), предотвращая дублирование задач в Kafka при наплыве пользователей.
+- **Concurrent Processing**: Параллельное чтение партиций Kafka и многопоточный опрос GitHub API.
+
+###  Синхронизация состояний
+- **Background Polling**: Автоматическое обновление всех активных подписок каждые 15 секунд.
+- **Event-Driven Invalidation**: Мгновенная очистка кэша в Processor при удалении подписки в Subscriber через шину событий.
+
+##  Запуск
+## Запуск с помощью Docker
+1.  **Клонируйте репозиторий:**
+    ```bash
+    git clone https://github.com/Chaice1/RepoStat-Distributed-Async-Monitoring-System
+    ```
+
+2.  **Перейдите в директорию проекта:**
+    ```bash
+    cd RepoStat-Distributed-Async-Monitoring-System
+    ```
+3.  **Запуск программы:**
+    ```bash
+    make up
+    ```
+4.  **Остановка работы программы:**
+    ```
+    make down
+    ```
+5.  **Остановка работы программы и удаление volumes:**
+    ```
+    make down-volumes
+    ```
+
+
+## 🛠 API Endpoints
+
+| Метод | Эндпоинт | Описание | Статусы |
+| :--- | :--- | :--- | :--- |
+| **GET** | `/api/repositories/info?url=...` | Инфо о репозитории. Если нет в кэше — инициирует сбор. | `200`, `404`,`400`,`500` |
+| **GET** | `/subscriptions` | Список всех активных подписок. | `200`, `500` |
+| **POST** | `/subscriptions` | Подписка на репозиторий. Проверяет наличие на GitHub. | `200`, `400`, `404`,`500`,`409` |
+| **DELETE** | `/subscriptions/{owner}/{repo}` | Отписка и очистка кэша в Processor. | `200`, `400`,`500` |
+| **GET** | `/subscriptions/info` | Статистика по всем подпискам сразу (из кэша). | `200`,`500` |
