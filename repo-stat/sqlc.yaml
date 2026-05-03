@@ -1,0 +1,30 @@
+version: "2"
+sql:
+  - schema: "migrations/"
+    queries: "subscriber/internal/adapter/repository/queries/"
+    engine: "postgresql"
+    gen:
+      go:
+        package: "generated_db"
+        out: "subscriber/internal/adapter/repository/gen/"
+        sql_package: "pgx/v5"
+        overrides:
+          - db_type: "uuid"
+            go_type: "github.com/google/uuid.UUID"
+          - db_type: "Timestamptz"
+            go_type: "string"
+  - schema: "migrations/"
+    queries: "processor/internal/adapter/repository/queries/"
+    engine: "postgresql"
+    gen:
+      go:
+        package: "generated_processor_db"
+        out: "processor/internal/adapter/repository/gen/"
+        sql_package: "pgx/v5"
+        overrides:
+          - db_type: "uuid"
+            go_type: "github.com/google/uuid.UUID"
+          - db_type: "Timestamptz"
+            go_type: "string"
+          - db_type: "text"
+            go_type: "string"

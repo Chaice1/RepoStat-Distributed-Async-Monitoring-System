@@ -1,0 +1,156 @@
+services:
+  subscriber_db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "Ivbln173"
+      POSTGRES_DB: subscriptions
+    healthcheck:  
+      test: ["CMD-SHELL","pg_isready -U postgres -d subscriptions"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5433:5432"
+    volumes:
+      - subscriber_data:/var/lib/postgresql/data
+
+  processor_db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "Ivbln173"
+      POSTGRES_DB: repositories
+    healthcheck:  
+      test: ["CMD-SHELL","pg_isready -U postgres -d repositories"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5434:5432"
+    volumes:
+      - processor_data:/var/lib/postgresql/data
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    ports:
+      - "9092:9092"
+    environment:
+      - KAFKA_NUM_PARTITIONS=10
+      - KAFKA_BROKER_ID=0
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_ADVERTISED_LISTENERS=INTERNAL://kafka:29092,EXTERNAL://localhost:9092
+      - KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9092 || exit 1"]
+      interval: 10s   
+      timeout: 5s     
+      retries: 5      
+      start_period: 10s 
+    depends_on:
+      zookeeper:
+        condition: service_started
+
+  api:
+    image: api:latest
+    build:
+      context: repo-stat
+      dockerfile: Dockerfile.api
+    container_name: api
+    restart: unless-stopped
+    ports:
+      - 28080:8080
+    volumes:
+      - ./repo-stat/api/config/config.yaml:/config.yaml
+    environment:
+      - LISTEN_ADDRESS=:8080
+      - SUBSCRIBER_ADDRESS=subscriber:8080
+      - PROCESSOR_ADDRESS=processor:8080
+    depends_on:
+      - subscriber
+      - processor
+
+  subscriber:
+    image: subscriber:latest
+    build:
+      context: repo-stat
+      dockerfile: Dockerfile.subscriber
+    container_name: subscriber
+    restart: unless-stopped
+    ports:
+      - 28081:8080
+    volumes:
+      - ./repo-stat/migrations:/migrations 
+      - ./repo-stat/subscriber/config/config.yaml:/config.yaml
+    environment:
+      - KAFKA_ADDR=kafka:29092
+      - LISTEN_ADDRESS=:8080
+      - API_ADDRESS=api:8080
+      - DB_DSN=postgres://postgres:Ivbln173@subscriber_db:5432/subscriptions?sslmode=disable
+      - MIGRATION_PATH=file:///migrations
+    depends_on:
+      subscriber_db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+  processor:
+    image: processor:latest
+    build:
+      context: repo-stat
+      dockerfile: Dockerfile.processor
+    container_name: processor
+    restart: unless-stopped
+    ports:
+      - 28082:8080
+    volumes:
+      - ./repo-stat/migrations:/migrations
+      - ./repo-stat/processor/config/config.yaml:/config.yaml
+    environment:
+      - KAFKA_ADDR=kafka:29092
+      - LISTEN_ADDRESS=:8080
+      - COLLECTOR_ADDRESS=collector:8080
+      - DB_DSN=postgres://postgres:Ivbln173@processor_db:5432/repositories?sslmode=disable
+      - MIGRATION_PATH=file:///migrations
+    depends_on:
+      collector:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+      processor_db:
+        condition: service_healthy
+      
+  collector:
+    image: collector:latest
+    build:
+      context: repo-stat
+      dockerfile: Dockerfile.collector
+    container_name: collector
+    restart: unless-stopped
+    ports:
+      - 28083:8080
+    volumes:
+      - ./repo-stat/collector/config/config.yaml:/config.yaml
+    environment:
+      - KAFKA_ADDR=kafka:29092
+      - LISTEN_ADDRESS=:8080
+      - SUBSCRIBER_ADDRESS=subscriber:8080
+    depends_on:
+      kafka:  
+        condition: service_healthy
+      subscriber: 
+        condition: service_started
+      
+  
+
+volumes:
+  subscriber_data:
+  processor_data:
