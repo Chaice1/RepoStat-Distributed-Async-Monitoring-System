@@ -1,0 +1,17 @@
+
+app:
+  app_name: "repo-stat-processor"
+
+database:
+  dsn: "postgres://postgres:Ivbln173@localhost:5432/db?sslmode=disable"
+  migration_path: "file://migrations"
+
+logger:
+  log_level: "DEBUG"
+
+gprc: 
+  address: "localhost:8082"
+  timeout: "5s"
+
+kafka:
+  address: "localhost:9092"
