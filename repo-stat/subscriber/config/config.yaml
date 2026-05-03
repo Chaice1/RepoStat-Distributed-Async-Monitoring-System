@@ -1,0 +1,19 @@
+app:
+  app_name: "repo-stat-subscriber"
+
+grpc:
+  address: "localhost:8081"
+  timeout: "5s"
+
+logger:
+  log_level: "DEBUG"
+
+services:
+  api: "localhost:8080"
+
+database:
+  dsn: "postgres://postgres:Ivbln173@localhost:5432/db?sslmode=disable"
+  migration_path: "file://migrations"
+
+kafka:
+  address: "localhost:9092"
