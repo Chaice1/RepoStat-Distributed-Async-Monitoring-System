@@ -1,0 +1,237 @@
+basePath: /
+definitions:
+  dto.CreateSubscriptionRequest:
+    properties:
+      owner_name:
+        type: string
+      repo_name:
+        type: string
+    type: object
+  dto.GetRepositoriesInfoResponse:
+    properties:
+      repositories:
+        items:
+          $ref: '#/definitions/dto.RepoInfo'
+        type: array
+    type: object
+  dto.GetSubscriptionsResponse:
+    properties:
+      subscriptions:
+        items:
+          $ref: '#/definitions/dto.Subscription'
+        type: array
+    type: object
+  dto.RepoInfo:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      forks:
+        type: integer
+      full_name:
+        type: string
+      stars:
+        type: integer
+    type: object
+  dto.Subscription:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      owner_name:
+        type: string
+      repo_name:
+        type: string
+    type: object
+host: localhost:28080
+info:
+  contact: {}
+  description: Сервис для сбора статистики репозиториев GitHub.
+  title: Repo Stat API
+  version: "1.0"
+paths:
+  /api/repositories/info:
+    get:
+      description: Запрашивает данные о звездах, форках и коммитах
+      parameters:
+      - description: Полная ссылка на репозиторий (например, https://github.com/golang/go)
+        in: query
+        name: url
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.RepoInfo'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Получить инфо о репозитории
+      tags:
+      - repository
+  /subscriptions:
+    get:
+      description: берёт из бд инфо о подписках
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.GetSubscriptionsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Получить инфо о подписках пользователя
+      tags:
+      - subscription
+    post:
+      consumes:
+      - application/json
+      description: Добавляет репозиторий в список отслеживаемых
+      parameters:
+      - description: Данные подписки
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateSubscriptionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: create subscription successfully'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Подписаться на репозиторий
+      tags:
+      - subscription
+  /subscriptions/{owner}/{repo}:
+    delete:
+      description: Удаляет репозиторий из списка отслеживаемых
+      parameters:
+      - description: Владелец репозитория
+        in: path
+        name: owner
+        required: true
+        type: string
+      - description: Название репозитория
+        in: path
+        name: repo
+        required: true
+        type: string
+      responses:
+        "200":
+          description: 'message: deleted successfully'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Отписаться от репозитория
+      tags:
+      - subscription
+  /subscriptions/info:
+    get:
+      description: Запрашивает данные о звездах, форках и коммитах
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.GetRepositoriesInfoResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Получить инфо о репозиториях, на которые подписан пользователь
+      tags:
+      - repository
+swagger: "2.0"
