@@ -64,7 +64,7 @@ func (p *producer) Relay(ctx context.Context) {
 					})
 
 					if err != nil {
-						p.log.Error("failed to write kafka message with key:%s", dtoMessage.Payload.Owner+"/"+dtoMessage.Payload.Repo, "error", err)
+						p.log.Error("failed to write kafka message with key", "key", dtoMessage.Payload.Owner+"/"+dtoMessage.Payload.Repo, "error", err)
 						time.Sleep(time.Second)
 						continue
 					}

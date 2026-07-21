@@ -4,7 +4,7 @@ app:
 
 database:
   dsn: "postgres://postgres:Ivbln173@localhost:5432/db?sslmode=disable"
-  migration_path: "file://migrations"
+  migration_path: "file://processor/migrations"
 
 logger:
   log_level: "DEBUG"

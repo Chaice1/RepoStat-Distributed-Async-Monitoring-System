@@ -15,7 +15,7 @@ FOR UPDATE SKIP LOCKED;
 
 -- name: GetRepositoryInfo :one
 
-SELECT * FROM repositories WHERE LOWER(fullname) = LOWER($1);
+SELECT * FROM repositories WHERE fullname = LOWER($1);
 
 
 -- name: CreateInboxMessage :exec
@@ -25,7 +25,7 @@ INSERT INTO inbox_messages (id,payload) VALUES($1,$2);
 
 -- name: CreateOrUpdateRepoInfo :exec
 
-INSERT INTO repositories (fullname,description,forks,stargazers,created_at,status) VALUES($1,$2,$3,$4,$5,'READY') ON CONFLICT (fullname) DO UPDATE SET 
+INSERT INTO repositories (fullname,description,forks,stargazers,created_at,status) VALUES(LOWER($1),$2,$3,$4,$5,'READY') ON CONFLICT (fullname) DO UPDATE SET 
     updated_at = NOW(),
     description = EXCLUDED.description, 
     forks = EXCLUDED.forks, 
@@ -36,12 +36,12 @@ INSERT INTO repositories (fullname,description,forks,stargazers,created_at,statu
 
 -- name: DeleteRepo :exec
 
-DELETE FROM repositories WHERE fullname = $1;
+DELETE FROM repositories WHERE fullname = LOWER($1);
 
 -- name: CreateFetchingTask :exec
 
-INSERT INTO repositories (fullname) VALUES($1); 
+INSERT INTO repositories (fullname) VALUES(LOWER($1)); 
 
 -- name: SetErrorStatusRepo :exec
 
-UPDATE repositories SET status = 'ERROR' WHERE LOWER(fullname) = LOWER($1);
+UPDATE repositories SET status = 'ERROR' WHERE fullname = LOWER($1);

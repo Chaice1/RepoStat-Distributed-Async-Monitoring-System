@@ -14,11 +14,11 @@ import (
 
 const createFetchingTask = `-- name: CreateFetchingTask :exec
 
-INSERT INTO repositories (fullname) VALUES($1)
+INSERT INTO repositories (fullname) VALUES(LOWER($1))
 `
 
-func (q *Queries) CreateFetchingTask(ctx context.Context, fullname string) error {
-	_, err := q.db.Exec(ctx, createFetchingTask, fullname)
+func (q *Queries) CreateFetchingTask(ctx context.Context, lower string) error {
+	_, err := q.db.Exec(ctx, createFetchingTask, lower)
 	return err
 }
 
@@ -39,7 +39,7 @@ func (q *Queries) CreateInboxMessage(ctx context.Context, arg CreateInboxMessage
 
 const createOrUpdateRepoInfo = `-- name: CreateOrUpdateRepoInfo :exec
 
-INSERT INTO repositories (fullname,description,forks,stargazers,created_at,status) VALUES($1,$2,$3,$4,$5,'READY') ON CONFLICT (fullname) DO UPDATE SET 
+INSERT INTO repositories (fullname,description,forks,stargazers,created_at,status) VALUES(LOWER($1),$2,$3,$4,$5,'READY') ON CONFLICT (fullname) DO UPDATE SET 
     updated_at = NOW(),
     description = EXCLUDED.description, 
     forks = EXCLUDED.forks, 
@@ -49,7 +49,7 @@ INSERT INTO repositories (fullname,description,forks,stargazers,created_at,statu
 `
 
 type CreateOrUpdateRepoInfoParams struct {
-	Fullname    string
+	Lower       string
 	Description string
 	Forks       int32
 	Stargazers  int32
@@ -58,7 +58,7 @@ type CreateOrUpdateRepoInfoParams struct {
 
 func (q *Queries) CreateOrUpdateRepoInfo(ctx context.Context, arg CreateOrUpdateRepoInfoParams) error {
 	_, err := q.db.Exec(ctx, createOrUpdateRepoInfo,
-		arg.Fullname,
+		arg.Lower,
 		arg.Description,
 		arg.Forks,
 		arg.Stargazers,
@@ -84,11 +84,11 @@ func (q *Queries) CreateOutboxMessage(ctx context.Context, arg CreateOutboxMessa
 
 const deleteRepo = `-- name: DeleteRepo :exec
 
-DELETE FROM repositories WHERE fullname = $1
+DELETE FROM repositories WHERE fullname = LOWER($1)
 `
 
-func (q *Queries) DeleteRepo(ctx context.Context, fullname string) error {
-	_, err := q.db.Exec(ctx, deleteRepo, fullname)
+func (q *Queries) DeleteRepo(ctx context.Context, lower string) error {
+	_, err := q.db.Exec(ctx, deleteRepo, lower)
 	return err
 }
 
@@ -128,7 +128,7 @@ func (q *Queries) GetOutboxMessage(ctx context.Context) ([]OutboxMessage, error)
 
 const getRepositoryInfo = `-- name: GetRepositoryInfo :one
 
-SELECT id, fullname, description, forks, stargazers, created_at, status, updated_at FROM repositories WHERE LOWER(fullname) = LOWER($1)
+SELECT id, fullname, description, forks, stargazers, created_at, status, updated_at FROM repositories WHERE fullname = LOWER($1)
 `
 
 func (q *Queries) GetRepositoryInfo(ctx context.Context, lower string) (Repository, error) {
@@ -149,7 +149,7 @@ func (q *Queries) GetRepositoryInfo(ctx context.Context, lower string) (Reposito
 
 const setErrorStatusRepo = `-- name: SetErrorStatusRepo :exec
 
-UPDATE repositories SET status = 'ERROR' WHERE LOWER(fullname) = LOWER($1)
+UPDATE repositories SET status = 'ERROR' WHERE fullname = LOWER($1)
 `
 
 func (q *Queries) SetErrorStatusRepo(ctx context.Context, lower string) error {

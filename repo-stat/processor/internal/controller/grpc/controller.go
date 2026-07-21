@@ -9,7 +9,8 @@ import (
 )
 
 type ProcessorService interface {
-	GetRepoInfo(context.Context, []*processor_domain.GetRepoInfoRequestBody) ([]*processor_domain.RepoInfo, error)
+	GetRepoInfo(context.Context, *processor_domain.GetRepoInfoRequestBody) (*processor_domain.RepoInfo, error)
+	Ping(context.Context) string
 }
 
 type processorController struct {
@@ -26,7 +27,7 @@ func NewProcessorService(procserv ProcessorService, log *slog.Logger) *processor
 }
 
 func (pc *processorController) GetInfoRepo(ctx context.Context, req *processorpb.GetInfoRepoRequest) (*processorpb.GetInfoRepoResponse, error) {
-	resp, err := pc.ps.GetRepoInfo(ctx, []*processor_domain.GetRepoInfoRequestBody{&processor_domain.GetRepoInfoRequestBody{Repo: req.GetRepo(), Owner: req.GetOwner()}})
+	resp, err := pc.ps.GetRepoInfo(ctx, &processor_domain.GetRepoInfoRequestBody{Repo: req.GetRepo(), Owner: req.GetOwner()})
 
 	if err != nil {
 		return nil, processor_controller_errors.HandleErrorFromDomainToGRPC(err, pc.log, "GetInfoRepo")
@@ -34,46 +35,19 @@ func (pc *processorController) GetInfoRepo(ctx context.Context, req *processorpb
 
 	return &processorpb.GetInfoRepoResponse{
 		Repoinfo: &processorpb.RepoInfo{
-			Fullname:    resp[0].FullName,
-			Description: resp[0].Description,
-			Forks:       resp[0].Forks,
-			Stargazers:  resp[0].Stargazers,
-			Createdat:   resp[0].CreatedAt.String(),
+			Fullname:    resp.FullName,
+			Description: resp.Description,
+			Forks:       resp.Forks,
+			Stargazers:  resp.Stargazers,
+			Status:      resp.Status,
+			Createdat:   resp.CreatedAt.String(),
 		},
 	}, nil
 }
 
-func (pc *processorController) GetInfoRepositories(ctx context.Context, req *processorpb.GetInfoRepositoriesRequest) (*processorpb.GetInfoRepositoriesResponse, error) {
-
-	GetRepoInfoSlice := make([]*processor_domain.GetRepoInfoRequestBody, len(req.GetReq()))
-
-	req_slice := req.GetReq()
-	for i := range req_slice {
-		GetRepoInfoSlice[i] = &processor_domain.GetRepoInfoRequestBody{
-			Owner: req_slice[i].GetOwner(),
-			Repo:  req_slice[i].GetRepo(),
-		}
-	}
-	repos, err := pc.ps.GetRepoInfo(ctx, GetRepoInfoSlice)
-
-	if err != nil {
-		return nil, processor_controller_errors.HandleErrorFromDomainToGRPC(err, pc.log, "GetInfoRepositories")
-	}
-
-	resp := make([]*processorpb.RepoInfo, len(repos))
-
-	for i := range repos {
-		resp[i] = &processorpb.RepoInfo{
-			Fullname:    repos[i].FullName,
-			Description: repos[i].Description,
-			Forks:       repos[i].Forks,
-			Stargazers:  repos[i].Stargazers,
-			Status:      repos[i].Status,
-			Createdat:   repos[i].CreatedAt.String(),
-		}
-	}
-
-	return &processorpb.GetInfoRepositoriesResponse{
-		Repositoriesinfo: resp,
+func (pc *processorController) Ping(ctx context.Context, req *processorpb.PingRequest) (*processorpb.PingResponse, error) {
+	responce := pc.ps.Ping(ctx)
+	return &processorpb.PingResponse{
+		Reply: responce,
 	}, nil
 }
