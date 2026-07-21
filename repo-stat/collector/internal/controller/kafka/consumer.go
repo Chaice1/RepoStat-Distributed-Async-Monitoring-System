@@ -51,7 +51,7 @@ func (c *consumer) Start(ctx context.Context, count_workers int) {
 
 func (c *consumer) Consume(ctx context.Context, i int) {
 
-	c.log.Debug("worker with id:%d started working", i)
+	c.log.Debug("worker with id started working", "worker id", i)
 	for {
 
 		kafka_message, err := c.r.FetchMessage(ctx)
@@ -64,7 +64,10 @@ func (c *consumer) Consume(ctx context.Context, i int) {
 
 		if err := json.Unmarshal(kafka_message.Value, &message); err != nil {
 			c.log.Error("failed to parse json", "error", err)
-			c.r.CommitMessages(ctx, kafka_message)
+			err = c.r.CommitMessages(ctx, kafka_message)
+			if err != nil {
+				c.log.Error("failed to commit messages", "error", err)
+			}
 			continue
 		}
 
@@ -77,7 +80,10 @@ func (c *consumer) Consume(ctx context.Context, i int) {
 				continue
 			}
 			c.p.SendRepoInfoMessage(ctx, message.Payload.Owner+"/"+message.Payload.Repo, uuid.New(), nil, err)
-			c.r.CommitMessages(ctx, kafka_message)
+			err = c.r.CommitMessages(ctx, kafka_message)
+			if err != nil {
+				c.log.Error("failed to commit messages", "error", err)
+			}
 			continue
 		}
 
@@ -92,7 +98,10 @@ func (c *consumer) Consume(ctx context.Context, i int) {
 		}
 
 		c.p.SendRepoInfoMessage(ctx, message.Payload.Owner+"/"+message.Payload.Repo, RepoInfoDto.Id, &RepoInfoDto, nil)
-		c.r.CommitMessages(ctx, kafka_message)
+		err = c.r.CommitMessages(ctx, kafka_message)
+		if err != nil {
+			c.log.Error("failed to commit messages", "error", err)
+		}
 
 	}
 }

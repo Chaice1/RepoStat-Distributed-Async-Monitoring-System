@@ -9,7 +9,7 @@ import (
 	collector_config "repo-stat/collector/config"
 	collector_grpc_client "repo-stat/collector/internal/adapter/client/grpc"
 	collectorclient "repo-stat/collector/internal/adapter/client/http"
-	collector_producer "repo-stat/collector/internal/adapter/client/kafka"
+	collector_producer "repo-stat/collector/internal/adapter/kafka"
 	collector_consumer "repo-stat/collector/internal/controller/kafka"
 
 	collectorusecase "repo-stat/collector/internal/usecase"
@@ -36,13 +36,19 @@ func run(ctx context.Context) error {
 	}
 
 	producer := collector_producer.NewProducer(cfg.Kafka.Address, subscriberClient, log)
-	defer producer.Close()
+	defer func() {
+		_ = producer.Close()
+	}()
+
 	go producer.SendSubscriptionMessage(ctx)
 
 	collectorUseCase := collectorusecase.NewCollectorService(gitHubClient)
 
 	consumer := collector_consumer.NewConsumer(cfg.Kafka.Address, producer, collectorUseCase, log)
-	defer consumer.Close()
+
+	defer func() {
+		_ = consumer.Close()
+	}()
 	go consumer.Start(ctx, 5)
 
 	<-ctx.Done()
