@@ -38,9 +38,11 @@
 - **Event-Driven Invalidation**: Мгновенная очистка кэша в Processor при удалении подписки в Subscriber через шину событий.
 
 ### Caching in API Gateway(Redis):
-- **Кэширование тяжелых gRPC-запросов (информация о репозиториях). Это позволило снизить нагрузку на сервис Processor и внешнее API GitHub, ускорив повторные ответы в несколько раз.
+- **Кэширование тяжелых gRPC-запросов (информация о репозиториях)**. Это позволило снизить нагрузку на сервис Processor и внешнее API GitHub, ускорив повторные ответы в несколько раз.
 
-### Rate Limiting in API Gateway: Rate limiter реализован на базе Redis(алгоритм Fixed Window), также есть локальный rate limiter, который реализован с помощью алгоритма token Bucket, при деградации Redis, система переходит на локальный rate limiter.
+### Rate Limiting in API Gateway: 
+- **Rate limiter**: реализован на базе Redis(алгоритм Fixed Window), также есть локальный rate limiter, который реализован с помощью алгоритма token Bucket, при деградации Redis, система переходит на локальный rate limiter.
+- 
 ##  Запуск
 ## Запуск с помощью Docker
 1.  **Клонируйте репозиторий:**
