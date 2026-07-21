@@ -132,7 +132,7 @@ func (r *repo) DeleteSubscriptionTransaction(ctx context.Context, repo string, o
 		return subscriber_repo_errors.HandleErrorFromDBToDomain(err)
 	}
 
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	qq := r.q.WithTx(tx)
 
@@ -149,6 +149,10 @@ func (r *repo) DeleteSubscriptionTransaction(ctx context.Context, repo string, o
 		Repo:  repo,
 		Owner: owner,
 	})
+
+	if err != nil {
+		return subscriber_repo_errors.HandleErrorFromDBToDomain(err)
+	}
 
 	err = tx.Commit(ctx)
 
