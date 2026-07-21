@@ -21,6 +21,15 @@ definitions:
           $ref: '#/definitions/dto.Subscription'
         type: array
     type: object
+  dto.PingResponse:
+    properties:
+      services:
+        items:
+          $ref: '#/definitions/dto.ServicesInfo'
+        type: array
+      status:
+        type: string
+    type: object
   dto.RepoInfo:
     properties:
       created_at:
@@ -33,6 +42,15 @@ definitions:
         type: string
       stars:
         type: integer
+      status:
+        type: string
+    type: object
+  dto.ServicesInfo:
+    properties:
+      name:
+        type: string
+      status:
+        type: string
     type: object
   dto.Subscription:
     properties:
@@ -52,6 +70,23 @@ info:
   title: Repo Stat API
   version: "1.0"
 paths:
+  /api/ping:
+    get:
+      description: Возвращает статус доступности подписчка и процессора
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PingResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/dto.PingResponse'
+      summary: Проверка статуса системы
+      tags:
+      - system
   /api/repositories/info:
     get:
       description: Запрашивает данные о звездах, форках и коммитах

@@ -15,6 +15,32 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/ping": {
+            "get": {
+                "description": "Возвращает статус доступности подписчка и процессора",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "system"
+                ],
+                "summary": "Проверка статуса системы",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.PingResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/dto.PingResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/repositories/info": {
             "get": {
                 "description": "Запрашивает данные о звездах, форках и коммитах",
@@ -325,6 +351,20 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.PingResponse": {
+            "type": "object",
+            "properties": {
+                "services": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ServicesInfo"
+                    }
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.RepoInfo": {
             "type": "object",
             "properties": {
@@ -342,6 +382,20 @@ const docTemplate = `{
                 },
                 "stars": {
                     "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ServicesInfo": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
                 }
             }
         },
