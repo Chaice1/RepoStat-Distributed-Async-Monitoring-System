@@ -42,7 +42,6 @@
 
 ### Rate Limiting in API Gateway: 
 - **Rate limiter**: реализован на базе Redis(алгоритм Fixed Window), также есть локальный rate limiter, который реализован с помощью алгоритма token Bucket, при деградации Redis, система переходит на локальный rate limiter.
-- 
 ##  Запуск
 ## Запуск с помощью Docker
 1.  **Клонируйте репозиторий:**
