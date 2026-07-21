@@ -13,11 +13,14 @@ jobs:
 
       - name: Setup Buf
         uses: bufbuild/buf-setup-action@v1
-
       - name: Buf Generate and Check Diff
         run: |
-          cd repo-stat && buf generate
-          git diff --exit-code
+         cd repo-stat
+         mkdir -p bin
+         GOBIN=$(pwd)/bin go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.32.0
+         GOBIN=$(pwd)/bin go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.3.0
+         buf generate
+         git diff --exit-code
 
   lint-and-unit:
     runs-on: ubuntu-latest
