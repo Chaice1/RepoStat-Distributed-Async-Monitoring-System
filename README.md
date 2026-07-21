@@ -13,13 +13,13 @@
 
 ### Data Flow (Поток данных)
 `User` → `Gateway` → `gRPC` → `Subscriber` (Check subs)  
-`Gateway` → `gRPC` → `Processor` (Cache check) → `Kafka (tasks)` → `Collector` → `GitHub API` → `Kafka (results)` → `Processor` (Update DB)
+`Gateway` →`Redis` (Cache check) ->`gRPC` → `Processor` (Cache check) → `Kafka (tasks)` → `Collector` → `GitHub API` → `Kafka (results)` → `Processor` (Update DB)
 
 ##  Технологический стек
 
 - **Language**: Go 
 - **Message Broker**: Apache Kafka 
-- **Databases**: PostgreSQL 
+- **Databases**: PostgreSQL,Redis
 - **Transport**: gRPC (Protobuf), REST 
 - **Infrastructure**: Docker, Docker Compose, Golang-migrate
 
