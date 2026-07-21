@@ -23,12 +23,6 @@ GOLANGCI_LINT_VERSION := v2.11.2
 
 lint: protolint gofmtcheck golint
 
-fix:
-	$(PROTOLINT) lint -fix .
-	find . -type f -name '*.go' ! -name '*.pb.go' -print0 | xargs -0 $(GOIMPORTS) -w
-	$(GOLANGCI_LINT) run --fix --timeout=2m -E gocritic -v ./...
-
-		
 generate:
 	set "PATH=$(LOCAL_BIN);%PATH%" && $(BUF_BUILD) generate
 
@@ -65,7 +59,6 @@ migrate-up:
 migrate-down:
 	migrate -path migrations -database $(DB_DSN1) down
 	migrate -path migrations -database $(DB_DSN2) down
-
 
 	 
 .tidy:
