@@ -11,3 +11,13 @@ logger:
 services:
   subscriber: "localhost:8081"
   processor: "localhost:8082"
+
+redis:
+  address: "localhost:6379"
+
+cache:
+  ttl_seconds: 60
+
+rate_limit:
+  requests_per_second: 5
+  burst: 10

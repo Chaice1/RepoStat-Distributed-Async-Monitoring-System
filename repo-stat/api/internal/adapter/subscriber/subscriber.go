@@ -36,6 +36,16 @@ func NewClient(address string, log *slog.Logger) (*Client, error) {
 	}, nil
 }
 
+func (c *Client) Ping(ctx context.Context) domain.PingStatus {
+	_, err := c.pb.Ping(ctx, &subscirberpb.PingRequest{})
+	if err != nil {
+		c.log.Error("subscriber ping failed", "error", err)
+		return domain.PingStatusDown
+	}
+
+	return domain.PingStatusUp
+}
+
 func (c *Client) CreateSubscription(ctx context.Context, repo string, owner string) error {
 	_, err := c.pb.CreateSubscription(ctx, &subscirberpb.CreateSubscriptionRequest{
 		RepoName:  repo,

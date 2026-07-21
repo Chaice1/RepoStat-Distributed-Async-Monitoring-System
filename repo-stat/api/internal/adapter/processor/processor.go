@@ -11,13 +11,19 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+type RedisRepo interface {
+	AddToChan(*domain.RepoInfo)
+	GetRepoInfo(context.Context, *domain.GetRepoInfoReq) (*domain.RepoInfo, error)
+}
+
 type processorClient struct {
 	log  *slog.Logger
 	conn *grpc.ClientConn
 	pc   processorpb.ProcessorClient
+	rr   RedisRepo
 }
 
-func NewProcessorClient(addres string, log *slog.Logger) (*processorClient, error) {
+func NewProcessorClient(addres string, log *slog.Logger, rr RedisRepo) (*processorClient, error) {
 
 	conn, err := grpc.NewClient(addres, grpc.WithTransportCredentials(insecure.NewCredentials()))
 
@@ -31,41 +37,52 @@ func NewProcessorClient(addres string, log *slog.Logger) (*processorClient, erro
 		log:  log,
 		conn: conn,
 		pc:   client,
+		rr:   rr,
 	}, nil
 }
 
-func (pc *processorClient) GetInfoRepo(ctx context.Context, req []*domain.GetRepoInfoReq) ([]*domain.RepoInfo, error) {
+func (pc *processorClient) Ping(ctx context.Context) domain.PingStatus {
+	_, err := pc.pc.Ping(ctx, &processorpb.PingRequest{})
+	if err != nil {
+		pc.log.Error("processor ping failed", "error", err)
+		return domain.PingStatusDown
+	}
+	return domain.PingStatusUp
 
-	req_to_GRPC := make([]*processorpb.GetInfoRepoRequest, len(req))
+}
 
-	for i := range req {
-		req_to_GRPC[i] = &processorpb.GetInfoRepoRequest{
-			Repo:  req[i].Repo,
-			Owner: req[i].Owner,
-		}
+func (pc *processorClient) GetInfoRepo(ctx context.Context, req *domain.GetRepoInfoReq) (*domain.RepoInfo, error) {
+
+	RepoInfo, err := pc.rr.GetRepoInfo(ctx, req)
+
+	if err == nil && RepoInfo != nil {
+		return RepoInfo, nil
 	}
 
-	resp, err := pc.pc.GetInfoRepositories(ctx, &processorpb.GetInfoRepositoriesRequest{
-		Req: req_to_GRPC,
+	resp, err := pc.pc.GetInfoRepo(ctx, &processorpb.GetInfoRepoRequest{
+		Repo:  req.Repo,
+		Owner: req.Owner,
 	})
 
 	if err != nil {
 		return nil, adapter_errors.ErrorHandleFromGRPCToDomainWithLog(err, pc.log, "GetInfoRepo")
 	}
 
-	repositoriesInfo := make([]*domain.RepoInfo, len(resp.GetRepositoriesinfo()))
+	RepoInfoResp := resp.GetRepoinfo()
 
-	for i, item := range resp.GetRepositoriesinfo() {
-		repositoriesInfo[i] = &domain.RepoInfo{
-			FullName:    item.Fullname,
-			Description: item.Description,
-			Forks:       item.Forks,
-			Status:      item.Status,
-			Stargazers:  item.Stargazers,
-			CreatedAt:   item.Createdat,
-		}
+	RepoInfo = &domain.RepoInfo{
+		FullName:    RepoInfoResp.Fullname,
+		Description: RepoInfoResp.Description,
+		Forks:       RepoInfoResp.Forks,
+		Status:      RepoInfoResp.Status,
+		Stargazers:  RepoInfoResp.Stargazers,
+		CreatedAt:   RepoInfoResp.Createdat,
 	}
-	return repositoriesInfo, nil
+	if RepoInfo.Status == "READY" {
+		pc.rr.AddToChan(RepoInfo)
+	}
+
+	return RepoInfo, nil
 }
 
 func (pc *processorClient) Close() error {
