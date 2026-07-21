@@ -16,6 +16,17 @@ services:
     volumes:
       - subscriber_data:/var/lib/postgresql/data
 
+  api_redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    ports:
+      - "6379:6379"
+    
   processor_db:
     image: postgres:15-alpine
     restart: unless-stopped
@@ -72,12 +83,21 @@ services:
     volumes:
       - ./repo-stat/api/config/config.yaml:/config.yaml
     environment:
+      - TTL_SECONDS=60
+      - RPS=5
+      - BURST=10
+      - REDIS_ADDR=api_redis:6379
       - LISTEN_ADDRESS=:8080
       - SUBSCRIBER_ADDRESS=subscriber:8080
       - PROCESSOR_ADDRESS=processor:8080
     depends_on:
-      - subscriber
-      - processor
+      subscriber:
+        condition: service_started
+      processor:
+        condition: service_started
+      api_redis:
+        condition: service_healthy
+
 
   subscriber:
     image: subscriber:latest
@@ -89,7 +109,7 @@ services:
     ports:
       - 28081:8080
     volumes:
-      - ./repo-stat/migrations:/migrations 
+      - ./repo-stat/subscriber/migrations:/migrations 
       - ./repo-stat/subscriber/config/config.yaml:/config.yaml
     environment:
       - KAFKA_ADDR=kafka:29092
@@ -112,7 +132,7 @@ services:
     ports:
       - 28082:8080
     volumes:
-      - ./repo-stat/migrations:/migrations
+      - ./repo-stat/processor/migrations:/migrations
       - ./repo-stat/processor/config/config.yaml:/config.yaml
     environment:
       - KAFKA_ADDR=kafka:29092
@@ -149,6 +169,15 @@ services:
       subscriber: 
         condition: service_started
       
+  tests:
+    image: tests:latest
+    build:
+      context: tests
+    container_name: tests
+    restart: "no"
+    depends_on:
+      - api
+    entrypoint: ["true"]
   
 
 volumes:

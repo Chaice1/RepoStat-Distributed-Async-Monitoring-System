@@ -36,7 +36,7 @@ func NewConsumer(address string, rep Repository, log *slog.Logger) *consumer {
 }
 func (c *consumer) Start(ctx context.Context, workers int) {
 	for i := 1; i <= workers; i++ {
-		c.log.Debug("worker %d started working", i)
+		c.log.Debug("worker started working", "worker id", i)
 		go c.ConsumeMessage(ctx)
 	}
 }
@@ -57,7 +57,10 @@ func (c *consumer) ConsumeMessage(ctx context.Context) {
 
 		if err != nil {
 			c.log.Error("failed to parse json", "error", err)
-			c.r.CommitMessages(ctx, message)
+			err = c.r.CommitMessages(ctx, message)
+			if err != nil {
+				c.log.Error("failed to commit message", "error", err)
+			}
 			continue
 		}
 
@@ -69,7 +72,10 @@ func (c *consumer) ConsumeMessage(ctx context.Context) {
 				continue
 			}
 
-			c.r.CommitMessages(ctx, message)
+			err = c.r.CommitMessages(ctx, message)
+			if err != nil {
+				c.log.Error("failed to commit message", "error", err)
+			}
 			continue
 		}
 
@@ -80,7 +86,10 @@ func (c *consumer) ConsumeMessage(ctx context.Context) {
 				c.log.Error("failed to set error status", "error", err)
 				continue
 			}
-			c.r.CommitMessages(ctx, message)
+			err = c.r.CommitMessages(ctx, message)
+			if err != nil {
+				c.log.Error("failed to commit message", "error", err)
+			}
 			continue
 		}
 
@@ -88,7 +97,10 @@ func (c *consumer) ConsumeMessage(ctx context.Context) {
 
 		if err != nil {
 			c.log.Error("failed to parse time", "error", err)
-			c.r.CommitMessages(ctx, message)
+			err = c.r.CommitMessages(ctx, message)
+			if err != nil {
+				c.log.Error("failed to commit message", "error", err)
+			}
 			continue
 		}
 
@@ -107,7 +119,10 @@ func (c *consumer) ConsumeMessage(ctx context.Context) {
 			continue
 		}
 
-		c.r.CommitMessages(ctx, message)
+		err = c.r.CommitMessages(ctx, message)
+		if err != nil {
+			c.log.Error("failed to commit message", "error", err)
+		}
 	}
 }
 

@@ -69,8 +69,9 @@ func (r *repo) CreateRepoTransaction(ctx context.Context, id uuid.UUID, payload 
 		return processor_db_errors.ErrorHandleFromDBToDomain(err, r.log, "CreateRepoTransaction")
 	}
 
-	defer tx.Rollback(ctx)
-
+	defer func() {
+		_ = tx.Rollback(ctx)
+	}()
 	qq := r.q.WithTx(tx)
 
 	err = qq.CreateInboxMessage(ctx, generated_processor_db.CreateInboxMessageParams{
@@ -87,7 +88,7 @@ func (r *repo) CreateRepoTransaction(ctx context.Context, id uuid.UUID, payload 
 	}
 
 	err = qq.CreateOrUpdateRepoInfo(ctx, generated_processor_db.CreateOrUpdateRepoInfoParams{
-		Fullname:    repoinfo.FullName,
+		Lower:       repoinfo.FullName,
 		Description: repoinfo.Description,
 		Forks:       int32(repoinfo.Forks),
 		Stargazers:  int32(repoinfo.Stargazers),
@@ -129,7 +130,9 @@ func (r *repo) DeleteRepoTransaction(ctx context.Context, fullname string, id uu
 		return processor_db_errors.ErrorHandleFromDBToDomain(err, r.log, "DeleteRepo")
 	}
 
-	defer tx.Rollback(ctx)
+	defer func() {
+		_ = tx.Rollback(ctx)
+	}()
 
 	qq := r.q.WithTx(tx)
 
@@ -164,7 +167,9 @@ func (r *repo) CreateFetchingTaskTransaction(ctx context.Context, repo string, o
 		return processor_db_errors.ErrorHandleFromDBToDomain(err, r.log, "CreateFetchingTask")
 	}
 
-	defer tx.Rollback(ctx)
+	defer func() {
+		_ = tx.Rollback(ctx)
+	}()
 
 	qq := r.q.WithTx(tx)
 
@@ -199,7 +204,9 @@ func (r *repo) SetErrorStatusRepo(ctx context.Context, fullname string, payload 
 		return processor_db_errors.ErrorHandleFromDBToDomain(err, r.log, "SetErrorStatusRepo")
 	}
 
-	defer tx.Rollback(ctx)
+	defer func() {
+		_ = tx.Rollback(ctx)
+	}()
 
 	qq := r.q.WithTx(tx)
 

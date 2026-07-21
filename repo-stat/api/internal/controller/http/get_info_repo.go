@@ -48,9 +48,7 @@ func NewGetInfoRepositoryHandler(log *slog.Logger, agu *usecase.ApiGatewayUsecas
 			return
 		}
 
-		repo_info, err := agu.GetInfoRepo(r.Context(), []*domain.GetRepoInfoReq{
-			&domain.GetRepoInfoReq{Repo: path_slice[1], Owner: path_slice[0]},
-		})
+		repo_info, err := agu.GetInfoRepo(r.Context(), path_slice[1], path_slice[0])
 
 		log.Error("api", "error", err, "repo_info", repo_info)
 
@@ -60,17 +58,21 @@ func NewGetInfoRepositoryHandler(log *slog.Logger, agu *usecase.ApiGatewayUsecas
 		}
 
 		resp := dto.RepoInfo{
-			FullName:    repo_info[0].FullName,
-			Description: repo_info[0].Description,
-			Forks:       repo_info[0].Forks,
-			Stargazers:  repo_info[0].Stargazers,
-			CreatedAt:   repo_info[0].CreatedAt,
-			Status:      repo_info[0].Status,
+			FullName:    repo_info.FullName,
+			Description: repo_info.Description,
+			Forks:       repo_info.Forks,
+			Stargazers:  repo_info.Stargazers,
+			CreatedAt:   repo_info.CreatedAt,
+			Status:      repo_info.Status,
 		}
 
 		w.Header().Add("Content-Type", "application/json")
 
-		w.WriteHeader(http.StatusOK)
+		if resp.Status == "READY" {
+			w.WriteHeader(http.StatusOK)
+		} else {
+			w.WriteHeader(http.StatusAccepted)
+		}
 
 		if err = json.NewEncoder(w).Encode(resp); err != nil {
 			log.Error("failed to write RepoInfo", "error", err)
@@ -91,31 +93,16 @@ func NewGetInfoRepositoryHandler(log *slog.Logger, agu *usecase.ApiGatewayUsecas
 func NewGetInfoRepositoriesHandler(log *slog.Logger, agu *usecase.ApiGatewayUsecase) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		subscriptions, err := agu.GetSubscriptions(r.Context())
-
-		if err != nil {
-			api_controller_errors.HandleErrorsFromDomainToHTTP(w, err, log, "GetSubscriptions")
-			return
-		}
-
-		req := make([]*domain.GetRepoInfoReq, len(subscriptions))
-
-		for i := range subscriptions {
-			req[i] = &domain.GetRepoInfoReq{
-				Repo:  subscriptions[i].RepoName,
-				Owner: subscriptions[i].OwnerName,
-			}
-		}
-
-		repositories, err := agu.GetInfoRepo(r.Context(), req)
+		repositories, err := agu.GetInfoRepositories(r.Context())
 
 		if err != nil {
 			api_controller_errors.HandleErrorsFromDomainToHTTP(w, err, log, "GetInfoRepo")
 			return
 		}
 
-		resp := dto.GetRepositoriesInfoResponse{Repositories: make([]*dto.RepoInfo, len(subscriptions))}
+		resp := dto.GetRepositoriesInfoResponse{Repositories: make([]*dto.RepoInfo, len(repositories))}
 
+		allReady := true
 		for i, item := range repositories {
 
 			resp.Repositories[i] = &dto.RepoInfo{
@@ -126,12 +113,19 @@ func NewGetInfoRepositoriesHandler(log *slog.Logger, agu *usecase.ApiGatewayUsec
 				CreatedAt:   item.CreatedAt,
 				Status:      item.Status,
 			}
+			if resp.Repositories[i].Status != "READY" {
+				allReady = false
+			}
 
 		}
 
 		w.Header().Add("Content-Type", "application/json")
 
-		w.WriteHeader(http.StatusOK)
+		if allReady {
+			w.WriteHeader(http.StatusOK)
+		} else {
+			w.WriteHeader(http.StatusAccepted)
+		}
 
 		if err = json.NewEncoder(w).Encode(resp); err != nil {
 			log.Error("failed to write RepositoriesInfo", "error", err)

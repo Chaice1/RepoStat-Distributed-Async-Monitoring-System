@@ -59,8 +59,6 @@ func (p *producer) SendMessage(ctx context.Context) {
 			continue
 		}
 
-		p.log.Debug("message", DelSubscrMessage)
-
 		err = p.WriteDelSubscriptionMessage(ctx, DelSubscrMessage.Id, DelSubscrSlice)
 
 		if err != nil {
@@ -69,7 +67,6 @@ func (p *producer) SendMessage(ctx context.Context) {
 		}
 
 		err = p.r.SetSentStatusOutboxMessage(ctx, message.Id)
-		p.log.Error("message", err)
 		if err != nil {
 			p.log.Error("failed to set sent status", "error", err)
 			continue
@@ -84,7 +81,7 @@ func (p *producer) WriteDelSubscriptionMessage(ctx context.Context, id uuid.UUID
 			Value: payload,
 		})
 		if err != nil {
-			p.log.Error("failed to write kafka message with key", id)
+			p.log.Error("failed to write kafka message with key", "key", id)
 			time.Sleep(50 * time.Millisecond)
 			continue
 		} else {

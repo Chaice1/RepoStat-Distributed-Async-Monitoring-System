@@ -12,7 +12,7 @@ type APP struct {
 
 type DataBase struct {
 	Dsn  string `yaml:"dsn" env:"DB_DSN" env-default:"postgres://postgres:Ivbln173@localhost:5432/db?sslmode=disable"`
-	Path string `yaml:"migration_path" env:"MIGRATION_PATH" env-default:"file://migrations"`
+	Path string `yaml:"migration_path" env:"MIGRATION_PATH" env-default:"file://processor/migrations"`
 }
 
 type Kafka struct {
