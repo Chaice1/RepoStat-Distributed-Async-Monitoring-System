@@ -13,7 +13,7 @@
 
 ### Data Flow (Поток данных)
 `User` → `Gateway` → `gRPC` → `Subscriber` (Check subs)  
-`Gateway` →`Redis` (Cache check) ->`gRPC` → `Processor` (Cache check) → `Kafka (tasks)` → `Collector` → `GitHub API` → `Kafka (results)` → `Processor` (Update DB)
+`Gateway` (Cache check) ->`gRPC` → `Processor` (Cache check) → `Kafka (tasks)` → `Collector` → `GitHub API` → `Kafka (results)` → `Processor` (Update DB)
 
 ##  Технологический стек
 
